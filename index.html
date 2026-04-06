@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ky">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Окууну үйрөнөбүз - 1-класс</title>
+    <style>
+        :root {
+            --bg-color: #e3f2fd;
+            --primary-color: #4caf50;
+            --accent-color: #ff9800;
+            --error-color: #f44336;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            transition: background-color 0.5s ease;
+            touch-action: manipulation;
+            user-select: none;
+        }
+
+        #card {
+            background: white;
+            padding: 50px;
+            border-radius: 40px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 80%;
+            max-width: 600px;
+        }
+
+        #word {
+            font-size: 120px;
+            font-weight: 900;
+            color: #1565c0;
+            margin: 20px 0;
+            letter-spacing: 5px;
+            display: block;
+        }
+
+        .hint-btn {
+            background: none;
+            border: 2px solid #bbdefb;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            cursor: pointer;
+            font-size: 24px;
+            margin-bottom: 20px;
+            transition: 0.3s;
+        }
+
+        .hint-btn:hover { background: #e3f2fd; }
+
+        #mainBtn {
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            border: 10px solid #fff;
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(76, 175, 80, 0.4);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #mainBtn.active {
+            transform: scale(0.9);
+            background-color: var(--accent-color);
+            box-shadow: 0 0 50px var(--accent-color);
+        }
+
+        .pulse-ring {
+            position: absolute;
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            border: 4px solid var(--accent-color);
+            animation: pulse 1.5s infinite;
+            display: none;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.4); opacity: 0; }
+        }
+
+        #status {
+            margin-top: 40px;
+            font-size: 30px;
+            font-weight: 600;
+            color: #37474f;
+            min-height: 40px;
+        }
+
+        .icon { font-size: 60px; margin-bottom: 10px; }
+
+        .success { background-color: #c8e6c9 !important; }
+        .fail { background-color: #ffcdd2 !important; }
+    </style>
+</head>
+<body>
+
+    <div id="card">
+        <button class="hint-btn" onclick="playCurrentWord()" title="Угуу">🔊</button>
+        <div id="word">АЛМА</div>
+        <div id="status">Баскычты басып, сөздү окуңуз</div>
+    </div>
+
+    <div style="margin-top: 50px; position: relative; display: flex; justify-content: center; align-items: center;">
+        <div id="pulse" class="pulse-ring"></div>
+        <button id="mainBtn">
+            <span class="icon">🎤</span>
+            <span>БАСЫП ТУР</span>
+        </button>
+    </div>
+
+    <script>
+        const words = ["АЛМА", "АПА", "АТА", "КИТЕП", "МЕКТЕП", "ТОП", "НАН", "СУУ", "БАЛА"];
+        let currentIndex = 0;
+
+        const mainBtn = document.getElementById('mainBtn');
+        const wordDisplay = document.getElementById('word');
+        const statusDisplay = document.getElementById('status');
+        const pulse = document.getElementById('pulse');
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'ky-KG'; 
+            recognition.interimResults = false;
+
+            recognition.onresult = (event) => {
+                const result = event.results[0][0].transcript.toLowerCase().replace(/[.,!?]/g, '');
+                checkResult(result);
+            };
+
+            recognition.onerror = (e) => {
+                console.error(e);
+                resetUI();
+            };
+        }
+
+        function checkResult(spoken) {
+            const target = words[currentIndex].toLowerCase();
+
+            if (spoken.includes(target) || target.includes(spoken)) {
+                document.body.classList.add('success');
+                statusDisplay.innerHTML = "🎉 АЗАМАТ! ТУУРА!";
+                playSound(523.25, 0.2);
+
+                setTimeout(() => {
+                    currentIndex = (currentIndex + 1) % words.length;
+                    wordDisplay.innerText = words[currentIndex];
+                    resetUI();
+                }, 2000);
+            } else {
+                document.body.classList.add('fail');
+                statusDisplay.innerHTML = `кайра аракет кыл... <br><small>сен мындай дедиң: "${spoken}"</small>`;
+                playSound(220, 0.3);
+
+                setTimeout(() => {
+                    resetUI();
+                }, 2000);
+            }
+        }
+
+        function resetUI() {
+            document.body.className = '';
+            statusDisplay.innerText = "Баскычты басып, сөздү окуңуз";
+            mainBtn.classList.remove('active');
+            pulse.style.display = 'none';
+        }
+
+        function playCurrentWord() {
+            const utterance = new SpeechSynthesisUtterance(words[currentIndex]);
+            utterance.lang = 'ky-KG'; 
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function playSound(freq, duration) {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+            osc.start();
+            osc.stop(ctx.currentTime + duration);
+        }
+
+        function startAction(e) {
+            e.preventDefault();
+            if (mainBtn.classList.contains('active')) return;
+
+            mainBtn.classList.add('active');
+            pulse.style.display = 'block';
+            statusDisplay.innerText = "Угуп жатам... Сүйлөңүз";
+
+            if (recognition) recognition.start();
+        }
+
+        function stopAction(e) {
+            e.preventDefault();
+            if (recognition) recognition.stop();
+            mainBtn.classList.remove('active');
+            pulse.style.display = 'none';
+        }
+
+        mainBtn.addEventListener('mousedown', startAction);
+        mainBtn.addEventListener('mouseup', stopAction);
+        mainBtn.addEventListener('touchstart', startAction);
+        mainBtn.addEventListener('touchend', stopAction);
+    </script>
+</body>
+</html>
